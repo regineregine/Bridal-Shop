@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -38,6 +38,7 @@ export default function Profile() {
     province: '',
     barangay: '',
     zip: '',
+    country: '',
   });
   const [passwordForm, setPasswordForm] = useState({
     current_password: '',
@@ -56,6 +57,28 @@ export default function Profile() {
   const [loadingMeasurements, setLoadingMeasurements] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [resetCode, setResetCode] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [codeVerified, setCodeVerified] = useState(false);
+
+  useEffect(() => {
+    // Check if coming from forgot password with code
+    const code = searchParams.get('code');
+    const email = searchParams.get('email');
+    const tab = searchParams.get('tab');
+    
+    if (code && email && tab === 'change-password' && isLoggedIn) {
+      setResetCode(code);
+      setResetEmail(decodeURIComponent(email));
+      setActiveTab('change-password');
+      // Code is already verified and user is logged in, just mark as verified
+      setCodeVerified(true);
+      toast.success('Code verified! You can now set your new password.');
+      // Clean up URL params but keep tab
+      setSearchParams({ tab: 'change-password' });
+    }
+  }, [searchParams, isLoggedIn]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -96,6 +119,7 @@ export default function Profile() {
         province: user.province || '',
         barangay: user.barangay || '',
         zip: user.zip || '',
+        country: user.country || 'Philippines',
       });
       setPaymentForm({
         card_holder_name: user.card_holder_name || '',
@@ -185,19 +209,55 @@ export default function Profile() {
     }
   };
 
+  const verifyResetCode = async (code, email) => {
+    try {
+      await api.post('/password/verify-code', {
+        email: email,
+        code: code,
+      });
+      setCodeVerified(true);
+      toast.success('Code verified! You can now set your new password.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Invalid or expired code.');
+      // Clear URL params if code is invalid
+      setSearchParams({});
+      setResetCode('');
+      setResetEmail('');
+    }
+  };
+
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (passwordForm.new_password !== passwordForm.confirm_password) {
       toast.error('New passwords do not match.');
       return;
     }
+
     try {
-      await api.post('/user/password', {
-        current_password: passwordForm.current_password,
-        new_password: passwordForm.new_password,
-        new_password_confirmation: passwordForm.confirm_password,
-      });
-      toast.success('Password changed successfully!');
+      // If using reset code, use different endpoint
+      if (codeVerified && resetCode && resetEmail) {
+        await api.post('/password/reset-with-code', {
+          email: resetEmail,
+          code: resetCode,
+          password: passwordForm.new_password,
+          password_confirmation: passwordForm.confirm_password,
+        });
+        toast.success('Password reset successfully! You can now login with your new password.');
+        // Clear reset code state
+        setResetCode('');
+        setResetEmail('');
+        setCodeVerified(false);
+        setSearchParams({});
+      } else {
+        // Normal password change (requires current password)
+        await api.post('/user/password', {
+          current_password: passwordForm.current_password,
+          new_password: passwordForm.new_password,
+          new_password_confirmation: passwordForm.confirm_password,
+        });
+        toast.success('Password changed successfully!');
+      }
+      
       setPasswordForm({
         current_password: '',
         new_password: '',
@@ -416,18 +476,6 @@ export default function Profile() {
                   </li>
                   <li>
                     <button
-                      onClick={() => setActiveTab('payment')}
-                      className={`w-full text-left flex items-center gap-2 rounded-lg px-4 py-2 ${
-                        activeTab === 'payment'
-                          ? 'bg-pink-50 text-pink-600'
-                          : 'hover:bg-gray-50 text-slate-700'
-                      }`}
-                    >
-                      Payment Methods
-                    </button>
-                  </li>
-                  <li>
-                    <button
                       onClick={() => setActiveTab('change-password')}
                       className={`w-full text-left flex items-center gap-2 rounded-lg px-4 py-2 ${
                         activeTab === 'change-password'
@@ -462,7 +510,6 @@ export default function Profile() {
                   {activeTab === 'cart' && 'My Cart'}
                   {activeTab === 'orders' && 'My Orders'}
                   {activeTab === 'addresses' && 'My Address'}
-                  {activeTab === 'payment' && 'Payment Methods'}
                   {activeTab === 'change-password' && 'Change Password'}
                   {activeTab === 'sizes' && 'My Sizes'}
                 </h1>
@@ -471,8 +518,6 @@ export default function Profile() {
                   {activeTab === 'cart' && 'View items in your cart'}
                   {activeTab === 'orders' && 'View your order history'}
                   {activeTab === 'addresses' && 'Manage your shipping address'}
-                  {activeTab === 'payment' &&
-                    'Save your card details for faster checkout'}
                   {activeTab === 'change-password' && 'Update your password'}
                   {activeTab === 'sizes' && 'Manage your dress measurements'}
                 </p>
@@ -727,6 +772,27 @@ export default function Profile() {
                           }
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm text-slate-700 mb-1">
+                          Country
+                        </label>
+                        <select
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                          value={addressForm.country}
+                          onChange={(e) =>
+                            setAddressForm({
+                              ...addressForm,
+                              country: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="Philippines">Philippines</option>
+                          <option value="United States">United States</option>
+                          <option value="Canada">Canada</option>
+                          <option value="United Kingdom">United Kingdom</option>
+                          <option value="Australia">Australia</option>
+                        </select>
+                      </div>
                     </div>
                     <button
                       type="submit"
@@ -738,155 +804,45 @@ export default function Profile() {
                 </div>
               )}
 
-              {/* Payment Section */}
-              {activeTab === 'payment' && (
-                <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-                  <form
-                    onSubmit={handlePaymentUpdate}
-                    className="space-y-6 max-w-md"
-                  >
-                    <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-4">
-                      <div className="flex items-start gap-3">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 text-pink-600 mt-0.5 shrink-0"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <p className="text-sm text-slate-700">
-                          Your card information is securely stored. We only save
-                          the last 4 digits for your reference.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm text-slate-700 mb-1">
-                        Cardholder Name
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                        value={paymentForm.card_holder_name}
-                        onChange={(e) =>
-                          setPaymentForm({
-                            ...paymentForm,
-                            card_holder_name: e.target.value,
-                          })
-                        }
-                        placeholder="John Doe"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm text-slate-700 mb-1">
-                        Card Number
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                        value={paymentForm.card_number}
-                        onChange={(e) =>
-                          setPaymentForm({
-                            ...paymentForm,
-                            card_number: e.target.value,
-                          })
-                        }
-                        placeholder="1234 5678 9012 3456"
-                        maxLength="19"
-                      />
-                      {user?.card_last_four && (
-                        <p className="text-xs text-slate-500 mt-1">
-                          Current card ends in {user.card_last_four}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-slate-700 mb-1">
-                          Expiry Date
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                          value={paymentForm.card_expiry}
-                          onChange={(e) =>
-                            setPaymentForm({
-                              ...paymentForm,
-                              card_expiry: e.target.value,
-                            })
-                          }
-                          placeholder="MM/YY"
-                          maxLength="5"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-700 mb-1">
-                          Card Type
-                        </label>
-                        <select
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                          value={paymentForm.card_type}
-                          onChange={(e) =>
-                            setPaymentForm({
-                              ...paymentForm,
-                              card_type: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">Select</option>
-                          <option value="Visa">Visa</option>
-                          <option value="Mastercard">Mastercard</option>
-                          <option value="American Express">
-                            American Express
-                          </option>
-                          <option value="Discover">Discover</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="mt-6 px-8 py-2 rounded-lg bg-pink-500 text-white font-semibold hover:bg-pink-600"
-                    >
-                      Save Payment Info
-                    </button>
-                  </form>
-                </div>
-              )}
 
               {/* Change Password Section */}
               {activeTab === 'change-password' && (
                 <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                  {codeVerified && resetCode && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <p className="text-sm text-green-800">
+                          Reset code verified! Enter your new password below.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <form
                     onSubmit={handlePasswordChange}
                     className="space-y-6 max-w-md"
                   >
-                    <div>
-                      <label className="block text-sm text-slate-700 mb-1">
-                        Current Password
-                      </label>
-                      <input
-                        type="password"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                        value={passwordForm.current_password}
-                        onChange={(e) =>
-                          setPasswordForm({
-                            ...passwordForm,
-                            current_password: e.target.value,
-                          })
-                        }
-                        required
-                      />
-                    </div>
+                    {!codeVerified && (
+                      <div>
+                        <label className="block text-sm text-slate-700 mb-1">
+                          Current Password
+                        </label>
+                        <input
+                          type="password"
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                          value={passwordForm.current_password}
+                          onChange={(e) =>
+                            setPasswordForm({
+                              ...passwordForm,
+                              current_password: e.target.value,
+                            })
+                          }
+                          required={!codeVerified}
+                        />
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm text-slate-700 mb-1">
                         New Password

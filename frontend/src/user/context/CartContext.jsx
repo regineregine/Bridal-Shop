@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
 
@@ -11,16 +12,28 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
+  const { user } = useAuth();
+  const userId = user?.id || 'guest';
+  const cartKey = `cart_${userId}`;
+
   const [cartItems, setCartItems] = useState(() => {
-    const savedCart = localStorage.getItem('cart');
-    const items = savedCart ? JSON.parse(savedCart) : [];
-    // Initialize selected state for all items (default: true for new items)
-    return items.map(item => ({ ...item, selected: item.selected !== undefined ? item.selected : true }));
+    // Initialize with empty array, will load from localStorage in useEffect
+    return [];
   });
 
+  // Load cart from localStorage when user changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    const savedCart = localStorage.getItem(cartKey);
+    const items = savedCart ? JSON.parse(savedCart) : [];
+    setCartItems(items.map(item => ({ ...item, selected: item.selected !== undefined ? item.selected : true })));
+  }, [cartKey]);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (cartItems.length > 0 || localStorage.getItem(cartKey)) {
+      localStorage.setItem(cartKey, JSON.stringify(cartItems));
+    }
+  }, [cartItems, cartKey]);
 
   const addToCart = (product, size, quantity = 1) => {
     setCartItems(prevItems => {
@@ -57,6 +70,10 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
+  };
+
+  const removeSelectedItems = () => {
+    setCartItems(prevItems => prevItems.filter(item => !item.selected));
   };
 
   const toggleItemSelection = (productId, size) => {
@@ -100,6 +117,7 @@ export const CartProvider = ({ children }) => {
       removeFromCart,
       updateQuantity,
       clearCart,
+      removeSelectedItems,
       toggleItemSelection,
       getCartTotal,
       getSelectedCartTotal,

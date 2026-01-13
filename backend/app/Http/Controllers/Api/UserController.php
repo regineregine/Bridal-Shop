@@ -52,28 +52,20 @@ class UserController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'address' => 'nullable|string|max:255', // Mapping street_address to address for now, or add columns
+            'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'province' => 'nullable|string|max:255',
-            'barangay' => 'nullable|string|max:255', // Need to add this column if not exists
+            'barangay' => 'nullable|string|max:255',
             'zip' => 'nullable|string|max:20',
+            'country' => 'nullable|string|max:255',
         ]);
 
-        // Assuming the users table has these columns. If not, we need a migration.
-        // Based on create_all_tables.php: address, city, zip, country.
-        // The user wants: street_address, city, province, barangay, zip_code.
-        // I should probably update the migration or just map them.
-        // Let's check the migration again.
-
-        $user->address = $validated['address'] ?? $user->address; // street_address
+        $user->address = $validated['address'] ?? $user->address;
         $user->city = $validated['city'] ?? $user->city;
+        $user->province = $validated['province'] ?? $user->province;
+        $user->barangay = $validated['barangay'] ?? $user->barangay;
         $user->zip = $validated['zip'] ?? $user->zip;
-        // We might need to add province and barangay to users table.
-        // For now, let's assume we can store them or add them.
-        // I'll check the migration file content I read earlier.
-
-        // Migration has: address, city, zip, country.
-        // I will add province and barangay columns to the users table via a new migration.
+        $user->country = $validated['country'] ?? $user->country;
 
         $user->save();
 

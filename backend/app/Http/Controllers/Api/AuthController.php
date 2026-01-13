@@ -19,6 +19,11 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'contact_number' => 'nullable|string|max:20',
+        ], [
+            'email.unique' => 'This email address is already registered. Please use a different email or sign in.',
+            'email.email' => 'Please enter a valid email address.',
+            'password.min' => 'Password must be at least 8 characters long.',
+            'password.confirmed' => 'Password confirmation does not match.',
         ]);
 
         $user = User::create([
@@ -59,11 +64,14 @@ class AuthController extends Controller
         // Check if email belongs to a regular user
         $user = User::where('email', $request->email)->first();
         if ($user && Hash::check($request->password, $user->password)) {
+            // Update last login timestamp
+            $user->update(['last_login_at' => now()]);
+            
             $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json([
                 'access_token' => $token,
                 'token_type' => 'Bearer',
-                'user' => $user,
+                'user' => $user->fresh(),
                 'user_type' => 'user',
             ]);
         }

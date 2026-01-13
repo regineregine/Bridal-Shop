@@ -25,6 +25,36 @@ export default function AdminCustomerDetails() {
     }
   };
 
+  const handleArchive = async () => {
+    if (!window.confirm(`Are you sure you want to archive ${customer.name}? They will be moved to archived customers.`)) {
+      return;
+    }
+
+    try {
+      await adminApi.post(`/customers/${id}/archive`);
+      toast.success('Customer archived successfully');
+      await fetchCustomer();
+      navigate('/admin/customers');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to archive customer');
+    }
+  };
+
+  const handleUnarchive = async () => {
+    if (!window.confirm(`Are you sure you want to unarchive ${customer.name}? They will be moved back to active customers.`)) {
+      return;
+    }
+
+    try {
+      await adminApi.post(`/customers/${id}/unarchive`);
+      toast.success('Customer unarchived successfully');
+      await fetchCustomer();
+      navigate('/admin/customers');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to unarchive customer');
+    }
+  };
+
   const getImageUrl = (imageName) => {
     if (!imageName) return '/img/p-1.webp';
     if (imageName.startsWith('http') || imageName.startsWith('data:')) {
@@ -61,15 +91,48 @@ export default function AdminCustomerDetails() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-900 mb-2">{customer.name}</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-semibold text-slate-900">{customer.name}</h1>
+              {customer.is_archived ? (
+                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                  Archived
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                  Active
+                </span>
+              )}
+            </div>
             <p className="text-slate-600">Customer ID: {customer.id}</p>
+            {customer.is_archived && customer.archived_at && (
+              <p className="text-sm text-slate-500 mt-1">
+                Archived on {new Date(customer.archived_at).toLocaleDateString()}
+              </p>
+            )}
           </div>
-          <button
-            onClick={() => navigate('/admin/customers')}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-slate-700 hover:bg-gray-50"
-          >
-            Back to Customers
-          </button>
+          <div className="flex gap-3">
+            {customer.is_archived ? (
+              <button
+                onClick={handleUnarchive}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Unarchive Customer
+              </button>
+            ) : (
+              <button
+                onClick={handleArchive}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                Archive Customer
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/admin/customers')}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-slate-700 hover:bg-gray-50"
+            >
+              Back to Customers
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

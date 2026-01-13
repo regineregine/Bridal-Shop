@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const adminApi = axios.create({
-    baseURL: 'http://localhost:8000/api/admin',
+    baseURL: '/api/admin',  // Vite proxy will forward to backend
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

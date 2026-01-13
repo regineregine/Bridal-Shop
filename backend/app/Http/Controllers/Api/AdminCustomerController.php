@@ -8,9 +8,20 @@ use Illuminate\Http\Request;
 
 class AdminCustomerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $customers = User::withCount('orders')->latest()->get();
+        // Check if requesting archived customers
+        $archived = $request->query('archived', false);
+        
+        $query = User::withCount('orders');
+        
+        if ($archived) {
+            $query->where('is_archived', true);
+        } else {
+            $query->where('is_archived', false);
+        }
+        
+        $customers = $query->latest()->get();
         
         // Calculate total_spent for each customer
         // Only count orders where payment_status = 'paid' AND status is 'in_production' or later
@@ -37,6 +48,36 @@ class AdminCustomerController extends Controller
             ->sum('total_price');
 
         return $user;
+    }
+
+    public function archive($id)
+    {
+        $user = User::findOrFail($id);
+        
+        $user->update([
+            'is_archived' => true,
+            'archived_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Customer archived successfully',
+            'user' => $user
+        ]);
+    }
+
+    public function unarchive($id)
+    {
+        $user = User::findOrFail($id);
+        
+        $user->update([
+            'is_archived' => false,
+            'archived_at' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Customer unarchived successfully',
+            'user' => $user
+        ]);
     }
 }
 

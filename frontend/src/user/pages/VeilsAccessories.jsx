@@ -128,10 +128,7 @@ export default function VeilsAccessories() {
           Book an appointment with us today and let our experts help you find the dress of your dreams.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="/reservation" className="inline-block rounded-full bg-pink-500 px-8 py-3 text-base font-semibold text-white transition-colors hover:bg-pink-600">
-            Book Appointment
-          </a>
-          <a href="/contact" className="inline-block rounded-full border-2 border-slate-900 px-8 py-3 text-base font-semibold text-slate-900 transition-colors hover:bg-slate-900 hover:text-white">
+          <a href="/contact" className="inline-block rounded-full bg-pink-500 px-8 py-3 text-base font-semibold text-white transition-colors hover:bg-pink-600">
             Contact Us
           </a>
         </div>

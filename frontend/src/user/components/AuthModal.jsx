@@ -14,7 +14,7 @@ export default function AuthModal({
   const { login } = useAuth();
   const { login: adminLogin } = useAdminAuth();
   const navigate = useNavigate();
-  const [view, setView] = useState(initialView); // 'login', 'register', 'success'
+  const [view, setView] = useState(initialView); // 'login', 'register', 'success', 'forgot-password'
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -29,6 +29,11 @@ export default function AuthModal({
   const [successMessage, setSuccessMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
+  const [resetCode, setResetCode] = useState('');
+  const [codeVerified, setCodeVerified] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,6 +50,10 @@ export default function AuthModal({
         confirm_password: '',
         agree_terms: false,
       });
+      setForgotPasswordEmail('');
+      setForgotPasswordSuccess(false);
+      setResetCode('');
+      setCodeVerified(false);
     }
   }, [isOpen, initialView]);
 
@@ -70,8 +79,8 @@ export default function AuthModal({
     if (/\s/.test(password)) {
       return 'Spaces are not allowed in password';
     }
-    if (password.length < 6) {
-      return 'Password must be at least 6 characters long';
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
     }
     return '';
   };
@@ -236,16 +245,32 @@ export default function AuthModal({
       toast.success('Account created successfully!');
       setView('success');
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
-      setError(errorMessage);
-      
       // Handle field-specific errors from backend
       if (err.response?.data?.errors) {
         const backendErrors = {};
         Object.keys(err.response.data.errors).forEach(key => {
-          backendErrors[key] = err.response.data.errors[key][0];
+          // Format error messages to be user-friendly
+          let errorMsg = err.response.data.errors[key][0];
+          
+          // Make duplicate email error more user-friendly
+          if (key === 'email' && (errorMsg.includes('already been taken') || errorMsg.includes('has already been taken'))) {
+            errorMsg = 'This email address is already registered. Please use a different email or sign in.';
+          }
+          
+          backendErrors[key] = errorMsg;
         });
         setFieldErrors(prev => ({ ...prev, ...backendErrors }));
+        
+        // Set general error message if email is duplicate
+        if (backendErrors.email && backendErrors.email.includes('already registered')) {
+          setError('This email address is already registered. Please use a different email or sign in.');
+        } else {
+          setError('Please fix the errors in the form');
+        }
+      } else {
+        // Handle general error messages
+        const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
+        setError(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -375,12 +400,13 @@ export default function AuthModal({
                     />
                     <span>Remember me</span>
                   </label>
-                  <a
-                    href="#"
+                  <button
+                    type="button"
+                    onClick={() => setView('forgot-password')}
                     className="font-medium text-primary hover:text-secondary"
                   >
                     Forgot password?
-                  </a>
+                  </button>
                 </div>
 
                 <button
@@ -561,7 +587,7 @@ export default function AuthModal({
                     name="password"
                     type="password"
                     className={`form-input ${fieldErrors.password ? 'border-red-500' : ''}`}
-                    placeholder="Create a password (min. 6 characters)"
+                    placeholder="Create a password (min. 8 characters)"
                     required
                     value={formData.password}
                     onChange={handleChange}
@@ -570,8 +596,8 @@ export default function AuthModal({
                   {fieldErrors.password && (
                     <p className="text-red-500 text-sm mt-1">{fieldErrors.password}</p>
                   )}
-                  {!fieldErrors.password && formData.password && formData.password.length < 6 && (
-                    <p className="text-yellow-600 text-sm mt-1">Password must be at least 6 characters long</p>
+                  {!fieldErrors.password && formData.password && formData.password.length < 8 && (
+                    <p className="text-yellow-600 text-sm mt-1">Password must be at least 8 characters long</p>
                   )}
                 </div>
 
@@ -673,6 +699,261 @@ export default function AuthModal({
                   Sign in here
                 </button>
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {view === 'forgot-password' && (
+        <div
+          className="modal-panel is-open"
+          aria-hidden="true"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-backdrop" onClick={onClose}></div>
+          <div className="modal-surface max-w-md">
+            <div className="modal-header">
+              <div>
+                <h2 className="headline">Reset Password</h2>
+                <p className="text-sm text-white/80 mt-1">
+                  Enter your email address and we'll send you a 6-digit code to reset your password.
+                </p>
+              </div>
+              <button
+                className="close-btn"
+                aria-label="Close forgot password"
+                onClick={onClose}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {!forgotPasswordSuccess ? (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setError('');
+                    setForgotPasswordLoading(true);
+
+                    try {
+                      await api.post('/password/forgot', {
+                        email: forgotPasswordEmail,
+                      });
+
+                      setForgotPasswordSuccess(true);
+                      toast.success('Password reset code sent to your email!');
+                    } catch (err) {
+                      setError(err.response?.data?.message || 'Failed to send reset link. Please try again.');
+                    } finally {
+                      setForgotPasswordLoading(false);
+                    }
+                  }}
+                  className="space-y-6"
+                >
+                  {error && (
+                    <div className="text-red-500 text-sm text-center">
+                      {error}
+                    </div>
+                  )}
+                  <div>
+                    <label className="form-label" htmlFor="forgot-email">
+                      Email Address
+                    </label>
+                    <input
+                      id="forgot-email"
+                      type="email"
+                      className="form-input"
+                      placeholder="Enter your email"
+                      required
+                      value={forgotPasswordEmail}
+                      onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn-primary w-full flex items-center justify-center gap-2"
+                    disabled={forgotPasswordLoading}
+                  >
+                    {forgotPasswordLoading && (
+                      <svg
+                        className="animate-spin h-5 w-5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    )}
+                    {forgotPasswordLoading ? 'Sending...' : 'Send Reset Code'}
+                  </button>
+                </form>
+              ) : !codeVerified ? (
+                <div className="space-y-6">
+                  <div className="text-center space-y-2">
+                    <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-8 h-8 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-900">Check Your Email</h3>
+                    <p className="text-slate-600">
+                      We've sent a 6-digit code to <strong>{forgotPasswordEmail}</strong>
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Enter the code below. The code will expire in 15 minutes.
+                    </p>
+                  </div>
+
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      setError('');
+                      setForgotPasswordLoading(true);
+
+                      try {
+                        const response = await api.post('/password/verify-code', {
+                          email: forgotPasswordEmail,
+                          code: resetCode,
+                        });
+
+                        // Code verified - automatically log in the user
+                        if (response.data.access_token && response.data.user) {
+                          login(response.data.access_token, response.data.user);
+                          setCodeVerified(true);
+                          toast.success('Code verified! Logging you in...');
+                          onClose();
+                          // Navigate to profile change password tab
+                          setTimeout(() => {
+                            navigate('/profile?tab=change-password&code=' + resetCode + '&email=' + encodeURIComponent(forgotPasswordEmail));
+                          }, 500);
+                        } else {
+                          setError('Failed to log in. Please try again.');
+                        }
+                      } catch (err) {
+                        setError(err.response?.data?.message || 'Invalid code. Please try again.');
+                      } finally {
+                        setForgotPasswordLoading(false);
+                      }
+                    }}
+                    className="space-y-4"
+                  >
+                    {error && (
+                      <div className="text-red-500 text-sm text-center">
+                        {error}
+                      </div>
+                    )}
+                    <div>
+                      <label className="form-label" htmlFor="reset-code">
+                        6-Digit Code
+                      </label>
+                      <input
+                        id="reset-code"
+                        type="text"
+                        className="form-input text-center text-2xl font-bold tracking-widest"
+                        placeholder="000000"
+                        maxLength={6}
+                        pattern="[0-9]{6}"
+                        required
+                        value={resetCode}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          setResetCode(value);
+                        }}
+                      />
+                      <p className="text-xs text-slate-500 mt-1 text-center">
+                        Enter the 6-digit code from your email
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="btn-primary w-full flex items-center justify-center gap-2"
+                      disabled={forgotPasswordLoading || resetCode.length !== 6}
+                    >
+                      {forgotPasswordLoading && (
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                      )}
+                      {forgotPasswordLoading ? 'Verifying...' : 'Verify Code'}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-green-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-900">Code Verified!</h3>
+                  <p className="text-slate-600">
+                    Redirecting to change password...
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-6">
+                <button
+                  onClick={() => setView('login')}
+                  className="text-sm text-primary hover:text-secondary font-medium w-full text-center"
+                >
+                  ← Back to Sign In
+                </button>
+              </div>
             </div>
           </div>
         </div>

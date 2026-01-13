@@ -98,14 +98,6 @@ export default function Navbar() {
             </li>
             <li>
               <Link
-                to="/reservation"
-                className="px-4 py-2 align-middle hover:text-pink-500 md:px-2"
-              >
-                Reservation
-              </Link>
-            </li>
-            <li>
-              <Link
                 to="/contact"
                 className="px-4 py-2 align-middle hover:text-pink-500 md:px-2"
               >

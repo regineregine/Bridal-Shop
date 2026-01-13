@@ -41,6 +41,9 @@ class User extends Authenticatable
         'hollow_to_hem',
         'height',
         'measurement_notes',
+        'is_archived',
+        'archived_at',
+        'last_login_at',
     ];
 
     public function orders()
@@ -68,6 +71,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_archived' => 'boolean',
+            'archived_at' => 'datetime',
+            'last_login_at' => 'datetime',
         ];
     }
 }

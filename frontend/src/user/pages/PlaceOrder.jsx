@@ -11,7 +11,7 @@ export default function PlaceOrder() {
   const { isLoggedIn, user } = useAuth();
   const userName = user?.name || 'Guest';
   const navigate = useNavigate();
-  const { getSelectedCartItems, getSelectedCartTotal, clearCart } = useCart();
+      const { getSelectedCartItems, getSelectedCartTotal, removeSelectedItems } = useCart();
   const cartItems = getSelectedCartItems();
 
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
@@ -156,7 +156,7 @@ export default function PlaceOrder() {
       };
 
       await api.post('/orders', payload);
-      clearCart();
+      removeSelectedItems();
       toast.success('Order placed successfully!');
       navigate('/orders');
     } catch (error) {
@@ -218,7 +218,7 @@ export default function PlaceOrder() {
                         </div>
                         <svg className="w-8 h-8 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
+            </svg>
                       </div>
                     </div>
                   </label>
@@ -235,7 +235,7 @@ export default function PlaceOrder() {
                       checked={paymentMethod === 'Credit/Debit Card'}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                     />
-                    <div className="flex-1">
+            <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-semibold text-slate-900">Credit/Debit Card</h3>
@@ -288,7 +288,7 @@ export default function PlaceOrder() {
                               value={cardDetails.cardCvv}
                               onChange={handleCardChange}
                             />
-                          </div>
+            </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-slate-700 mb-2">Cardholder Name</label>
@@ -302,8 +302,8 @@ export default function PlaceOrder() {
                           />
                         </div>
                         <p className="text-xs text-slate-500 italic">* This is a mock payment form for demonstration purposes</p>
-                      </div>
-                    </div>
+          </div>
+        </div>
                   )}
 
                   {/* GCash */}
@@ -320,7 +320,7 @@ export default function PlaceOrder() {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <div>
+          <div>
                           <h3 className="font-semibold text-slate-900">GCash</h3>
                           <p className="text-sm text-slate-600 mt-1">Pay using your GCash wallet</p>
                         </div>
@@ -343,7 +343,7 @@ export default function PlaceOrder() {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <div>
+              <div>
                           <h3 className="font-semibold text-slate-900">PayPal</h3>
                           <p className="text-sm text-slate-600 mt-1">Pay securely with PayPal</p>
                         </div>
@@ -358,90 +358,90 @@ export default function PlaceOrder() {
             {/* Shipping Information */}
             <div className="bg-white rounded-2xl border border-pink-200 shadow-[0_10px_30px_rgba(236,72,153,0.06)] p-6">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Shipping Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    required
+                    <input
+                      type="text"
+                      name="firstName"
+                      required
                     className="w-full rounded-md border border-pink-200 px-4 py-2 focus:border-pink-500 focus:ring-pink-500"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
+                      value={formData.firstName}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    required
+                    <input
+                      type="text"
+                      name="lastName"
+                      required
                     className="w-full rounded-md border border-pink-200 px-4 py-2 focus:border-pink-500 focus:ring-pink-500"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="md:col-span-2">
+                      value={formData.lastName}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
+                    <input
+                      type="email"
+                      name="email"
+                      required
                     className="w-full rounded-md border border-pink-200 px-4 py-2 focus:border-pink-500 focus:ring-pink-500"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="md:col-span-2">
+                      value={formData.email}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
-                  <input
-                    type="text"
-                    name="address"
-                    required
+                    <input
+                      type="text"
+                      name="address"
+                      required
                     className="w-full rounded-md border border-pink-200 px-4 py-2 focus:border-pink-500 focus:ring-pink-500"
-                    value={formData.address}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
+                      value={formData.address}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
-                  <input
-                    type="text"
-                    name="city"
-                    required
+                    <input
+                      type="text"
+                      name="city"
+                      required
                     className="w-full rounded-md border border-pink-200 px-4 py-2 focus:border-pink-500 focus:ring-pink-500"
-                    value={formData.city}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
+                      value={formData.city}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">ZIP / Postal Code</label>
-                  <input
-                    type="text"
-                    name="zip"
-                    required
+                    <input
+                      type="text"
+                      name="zip"
+                      required
                     className="w-full rounded-md border border-pink-200 px-4 py-2 focus:border-pink-500 focus:ring-pink-500"
-                    value={formData.zip}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="md:col-span-2">
+                      value={formData.zip}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Country</label>
-                  <select
-                    name="country"
+                    <select
+                      name="country"
                     className="w-full rounded-md border border-pink-200 px-4 py-2 focus:border-pink-500 focus:ring-pink-500"
-                    value={formData.country}
-                    onChange={handleChange}
-                  >
+                      value={formData.country}
+                      onChange={handleChange}
+                    >
                     <option>Philippines</option>
-                    <option>United States</option>
-                    <option>Canada</option>
-                    <option>United Kingdom</option>
-                    <option>Australia</option>
-                  </select>
+                      <option>United States</option>
+                      <option>Canada</option>
+                      <option>United Kingdom</option>
+                      <option>Australia</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-            </div>
           </section>
 
           {/* Refund Policy Disclaimer */}
@@ -475,18 +475,18 @@ export default function PlaceOrder() {
                   </p>
                 </div>
               </div>
-            </div>
+                  </div>
 
             {/* Terms & Conditions */}
             <div className="bg-white rounded-2xl border border-pink-200 shadow-[0_10px_30px_rgba(236,72,153,0.06)] p-6">
               <div className="flex items-start gap-3">
-                <input
+                    <input
                   type="checkbox"
                   id="accept-terms"
                   checked={acceptedTerms}
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
                   className="mt-1 w-5 h-5 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
-                  required
+                      required
                 />
                 <label htmlFor="accept-terms" className="flex-1 text-sm text-slate-700 cursor-pointer">
                   <span className="font-medium">I agree to the Terms & Conditions and Refund Policy</span>
@@ -501,44 +501,44 @@ export default function PlaceOrder() {
               </div>
             </div>
           </section>
-          </div>
+                  </div>
 
           {/* Order Details & Summary */}
           <aside className="w-full self-start rounded-xl border border-pink-200 bg-white p-6 shadow-lg lg:sticky lg:top-24 lg:w-96">
             <h3 className="mb-4 text-2xl font-semibold text-slate-900">Order Details</h3>
             
             <div className="mb-6 space-y-3">
-              <div>
+                  <div>
                 <p className="text-sm font-medium text-slate-700 mb-1">Shipping Address</p>
                 <p className="text-sm text-slate-600">
                   {formData.address ? `${formData.address}, ${formData.city}, ${formData.zip}` : 'Not provided'}
                 </p>
-              </div>
-              <div>
+                  </div>
+                  <div>
                 <p className="text-sm font-medium text-slate-700 mb-1">Customer</p>
                 <p className="text-sm text-slate-600">{formData.firstName} {formData.lastName}</p>
                 <p className="text-sm text-slate-600">{formData.email}</p>
               </div>
-            </div>
+          </div>
 
             <hr className="my-4 border-t border-pink-100" />
 
-            {/* Order Summary */}
+          {/* Order Summary */}
             <div className="mb-6">
               <h4 className="text-lg font-semibold text-slate-900 mb-4">Order Summary</h4>
               <div className="space-y-3">
                 {cartItems.map((item) => (
                   <div key={`${item.id}-${item.size}`} className="flex items-center gap-3 pb-3 border-b border-pink-100">
-                    <img 
-                      src={getImageUrl(item.image)} 
-                      alt={item.name} 
+                        <img
+                          src={getImageUrl(item.image)}
+                          alt={item.name}
                       className="w-16 h-16 rounded-lg object-cover"
-                    />
+                        />
                     <div className="flex-1">
                       <h4 className="font-semibold text-slate-900">{item.name}</h4>
                       <p className="text-sm text-slate-600">Size: {item.size}</p>
                       <p className="text-sm text-slate-700">Quantity: {item.quantity} × ₱{Number(item.price).toLocaleString()}</p>
-                    </div>
+                      </div>
                     <div className="text-right">
                       <p className="font-semibold text-slate-900">₱{Number(item.quantity * item.price).toLocaleString()}</p>
                     </div>
@@ -550,9 +550,9 @@ export default function PlaceOrder() {
             <hr className="my-4 border-t border-pink-100" />
 
             <div className="mb-2 flex justify-between text-slate-900">
-              <span>Subtotal</span>
-              <span>₱{subtotal.toLocaleString()}</span>
-            </div>
+                  <span>Subtotal</span>
+                  <span>₱{subtotal.toLocaleString()}</span>
+                </div>
             <div className="mb-2 flex justify-between text-slate-900">
               <span>Estimated Shipping</span>
               <span>₱0.00</span>
@@ -560,11 +560,11 @@ export default function PlaceOrder() {
             <div className="mb-4 flex justify-between text-slate-900">
               <span>Tax</span>
               <span>₱0.00</span>
-            </div>
+                </div>
             <hr className="my-4 border-t border-pink-100" />
             <div className="mb-6 flex justify-between text-lg font-semibold text-slate-700">
-              <span>Total</span>
-              <span>₱{total.toLocaleString()}</span>
+                  <span>Total</span>
+                  <span>₱{total.toLocaleString()}</span>
             </div>
 
             <button 

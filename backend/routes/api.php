@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\AdminProductController;
 use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminCustomerController;
+use App\Http\Controllers\Api\PasswordResetController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -20,6 +21,11 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::post('/products/{id}/reduce-stock', [ProductController::class, 'reduceStock']);
 Route::post('/reservations', [ReservationController::class, 'store']);
+
+// Password reset routes
+Route::post('/password/forgot', [PasswordResetController::class, 'forgotPassword']);
+Route::post('/password/verify-code', [PasswordResetController::class, 'verifyCode']);
+Route::post('/password/reset-with-code', [PasswordResetController::class, 'resetPasswordWithCode']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -66,6 +72,8 @@ Route::prefix('admin')->group(function () {
         Route::prefix('customers')->group(function () {
             Route::get('/', [AdminCustomerController::class, 'index']);
             Route::get('/{id}', [AdminCustomerController::class, 'show']);
+            Route::post('/{id}/archive', [AdminCustomerController::class, 'archive']);
+            Route::post('/{id}/unarchive', [AdminCustomerController::class, 'unarchive']);
         });
     });
 });
